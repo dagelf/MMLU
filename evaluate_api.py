@@ -2,6 +2,7 @@ import argparse
 import os
 import numpy as np
 import pandas as pd
+from categories import subcategories, categories
 import time
 import requests
 import json
@@ -107,7 +108,7 @@ def gen_prompt(train_df, subject, k=-1):
         prompt += format_example(train_df, i)
     return prompt
 
-def eval(args, subject, engine, dev_df, test_df):
+def eval(args, subject, dev_df, test_df):
     cors = []
     all_probs = []
     answers = choices[:test_df.shape[1]-2]
@@ -146,45 +147,76 @@ def eval(args, subject, engine, dev_df, test_df):
     return cors, acc, all_probs
 
 def main(args):
-    engines = args.engine
-    subjects = sorted([f.split("_test.csv")[0] for f in os.listdir(os.path.join(args.data_dir, "test")) if "_test.csv" in f])
+
+    subjects = sorted(
+        [
+            f.split("_test.csv")[0]
+            for f in os.listdir(os.path.join(args.data_dir, "test"))
+            if "_test.csv" in f
+        ]
+    )
 
     if not os.path.exists(args.save_dir):
-        os.mkdir(args.save_dir)
-    for engine in engines:
-        if not os.path.exists(os.path.join(args.save_dir, "results_{}".format(engine))):
-            os.mkdir(os.path.join(args.save_dir, "results_{}".format(engine)))
+        os.makedirs(args.save_dir)
+    if not os.path.exists(os.path.join(args.save_dir, "results_{}".format(args.model))):
+        os.makedirs(os.path.join(args.save_dir, "results_{}".format(args.model)))
 
-    print(subjects)
-    print(args)
+    all_cors = []
+    subcat_cors = {
+        subcat: [] for subcat_lists in subcategories.values() for subcat in subcat_lists
+    }
+    cat_cors = {cat: [] for cat in categories}
 
-    for engine in engines:
-        print(engine)
-        all_cors = []
+    for subject in subjects:
+        dev_df = pd.read_csv(
+            os.path.join(args.data_dir, "dev", subject + "_dev.csv"), header=None
+        )[: args.ntrain]
+        test_df = pd.read_csv(
+            os.path.join(args.data_dir, "test", subject + "_test.csv"), header=None
+        )
 
-        for subject in subjects:
-            dev_df = pd.read_csv(os.path.join(args.data_dir, "dev", subject + "_dev.csv"), header=None)[:args.ntrain]
-            test_df = pd.read_csv(os.path.join(args.data_dir, "test", subject + "_test.csv"), header=None)
+        cors, acc, probs = eval(args, subject, dev_df, test_df)
+        subcats = subcategories[subject]
 
-            cors, acc, probs = eval(args, subject, engine, dev_df, test_df)
-            all_cors.append(cors)
+        for subcat in subcats:
+            subcat_cors[subcat].append(cors)
+            for key in categories.keys():
+                if subcat in categories[key]:
+                    cat_cors[key].append(cors)
+        all_cors.append(cors)
 
-            test_df["{}_correct".format(engine)] = cors
-            for j in range(probs.shape[1]):
-                choice = choices[j]
-                test_df["{}_choice{}_probs".format(engine, choice)] = probs[:, j]
-            test_df.to_csv(os.path.join(args.save_dir, "results_{}".format(engine), "{}.csv".format(subject)), index=None)
+        test_df["{}_correct".format(args.model)] = cors
+        for j in range(probs.shape[1]):
+            choice = choices[j]
+            test_df["{}_choice{}_probs".format(args.model, choice)] = probs[:, j]
+        test_df.to_csv(
+            os.path.join(
+                args.save_dir, "results_{}".format(args.model), "{}.csv".format(subject)
+            ),
+            index=None,
+        )
 
-        weighted_acc = np.mean(np.concatenate(all_cors))
-        print("Average accuracy: {:.3f}".format(weighted_acc))
+    for subcat in subcat_cors:
+        subcat_acc = np.mean(np.concatenate(subcat_cors[subcat]))
+        print("Average accuracy {:.3f} - {}".format(subcat_acc, subcat))
+
+    for cat in cat_cors:
+        cat_acc = np.mean(np.concatenate(cat_cors[cat]))
+        print("Average accuracy {:.3f} - {}".format(cat_acc, cat))
+    weighted_acc = np.mean(np.concatenate(all_cors))
+    print("Average accuracy: {:.3f}".format(weighted_acc))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ntrain", "-k", type=int, default=5)
     parser.add_argument("--data_dir", "-d", type=str, default="data")
     parser.add_argument("--save_dir", "-s", type=str, default="results")
-    parser.add_argument("--engine", "-e", choices=["davinci", "curie", "babbage", "ada"],
-                        default=["ampere"], nargs="+")
+    parser.add_argument(
+        "--model",
+        "-m",
+        type=str,
+        default="google/flan-t5-small",
+    )
     args = parser.parse_args()
     main(args)
 
