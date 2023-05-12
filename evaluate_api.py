@@ -13,14 +13,15 @@ from crop import crop
 
 choices = ["A", "B", "C", "D"]
 
-def queryLLM(prompt):
+def queryLLM(prompt,label):
     # Define the URL to send the request to
     url = "http://llm:5000/api/v1/generate"
 
     # Define the JSON payload to send in the request
     payload = {
         "prompt": prompt,
-        "temperature": .9,
+        "do_sample": False,
+        "temperature": 1,
         "max_new_tokens": 1,
     }
 
@@ -46,8 +47,11 @@ def queryLLM(prompt):
         text_value = response_dict['results'][0]['text']
         answer = text_value.strip()
 
-        # print("Query : >" + prompt + "<\n" )
-        # print("Answer: >" + answer + "<\n"+ "\n" )
+
+        # print("Query : " + prompt)
+        # print("Label: " + label)
+        # print("response_str: " + response_str)
+        # print("Answer: >" + answer + "< = ", answer == label, "\n\n" )
 
         return answer
 
@@ -127,12 +131,11 @@ def eval(args, subject, dev_df, test_df):
 
         label = test_df.iloc[i, test_df.shape[1]-1]
 
-        c = queryLLM(prompt)
+        pred = queryLLM(prompt,label)
 
         lprobs = []
 
-        pred = c
-        probs = softmax(get_softmax_input(c))
+        probs = softmax(get_softmax_input(pred))
 
         cor = pred == label
         cors.append(cor)
