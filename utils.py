@@ -1,4 +1,4 @@
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer
 import torch
 
 
@@ -15,8 +15,13 @@ def format_subject(subject):
 
 def get_model_tokenizer(model_name, torch_dtype=torch.float32):
     print("Loading model and tokenizer from {}...".format(model_name))
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name, torch_dtype=torch_dtype)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    if "t5" in model_name:
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name, torch_dtype=torch_dtype)
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    elif "alpaca" in model_name:
+        model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch_dtype)
+        tokenizer = LlamaTokenizer.from_pretrained(model_name, padding_side='left')
+
     return model, tokenizer
 
 def format_example(df, idx, include_answer=True):
