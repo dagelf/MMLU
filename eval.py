@@ -7,12 +7,17 @@ import torch
 import warnings
 from categories import subcategories, categories
 import numpy as np
+import pandas as pd
 
 
 warnings.filterwarnings("ignore")
 
 
 def main(args):
+
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
+
     if args.precision == "bf16":
         torch.set_float32_matmul_precision("high")
         torch_dtype = torch.bfloat16
@@ -48,14 +53,17 @@ def main(args):
     }
     cat_cors = {cat: [] for cat in categories}
 
+    results_df = pd.DataFrame(columns=["subject", "accuracy", "granularity"])
     for subject in subjects:
         data_module = MMLUDataModule(args.data_dir, args.prompt_dir, tokenizer, args.batch_size, subject, args.ntrain)
         data_module.prepare_data()
         test_dataloader = data_module.test_dataloader()
         trainer.test(model, dataloaders=test_dataloader, verbose=False)
         acc = model.metric.compute().item()
-        print("Average accuracy {:.3f} - {}".format(acc, subject))
 
+        print("Average accuracy {:.3f} - {}".format(acc, subject))
+        results_df.loc[len(results_df)] = [subject, acc, "subject"]
+        
         cor = model.metric.correct.item()
         total = model.metric.total.item()
 
@@ -66,21 +74,25 @@ def main(args):
                 if subcat in categories[key]:
                     cat_cors[key].append((cor, total))
         all_cors.append((cor, total))
-    
+
     for subcat in subcat_cors:
         cors, totals = zip(*subcat_cors[subcat])
         subcat_acc = sum(cors) / sum(totals)
         print("Average accuracy {:.3f} - {}".format(subcat_acc, subcat))
+        results_df.loc[len(results_df)] = [subcat, subcat_acc, "subcategory"]
 
     for cat in cat_cors:
         cors, totals = zip(*cat_cors[cat])
         cat_acc = sum(cors) / sum(totals)
         print("Average accuracy {:.3f} - {}".format(cat_acc, cat))
+        results_df.loc[len(results_df)] = [cat, cat_acc, "category"]
 
     cors, totals = zip(*all_cors)
     weighted_acc = sum(cors) / sum(totals)
-    print("Average accuracy: {:.3f}".format(weighted_acc))
 
+    print("Average accuracy: {:.3f}".format(weighted_acc))
+    results_df.loc[len(results_df)] = ["all", weighted_acc, "overall"]
+    results_df.to_csv(os.path.join(args.save_dir, "results.csv"), index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -91,15 +103,15 @@ if __name__ == "__main__":
 
     parser.add_argument('--prompt_dir', "-p", type=str, default=None)
     parser.add_argument("--data_dir", "-d", type=str, default="data")
-    parser.add_argument("--save_dir", "-s", type=str, default="results")
+    parser.add_argument("--save_dir", "-s", type=str, default="results/alpaca-7b")
 
     parser.add_argument(
         "--model",
         "-m",
         type=str,
-        default="google/flan-t5-small",
+        default="../alpaca-7b",
     )
-    parser.add_argument('--batch_size', default=4, type=int)
+    parser.add_argument('--batch_size', default=16, type=int)
 
     args = parser.parse_args()
     seed_everything(args.seed)

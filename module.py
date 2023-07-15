@@ -10,15 +10,19 @@ import numpy as np
 
 
 class LogitAccuracy(Metric):
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer, model_name):
         super().__init__()
         self.tokenizer = tokenizer
+        self.model_name = model_name
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
     
     def update(self, logits, labels):
         self.total += logits.shape[0]
         labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+        if "alpaca" in self.model_name:
+            logits = logits[:, -1, :]
+        
         for i in range(logits.shape[0]):
             label = labels[i]
             logit = logits[i].flatten()
@@ -39,8 +43,24 @@ class LogitAccuracy(Metric):
                 .cpu()
                 .numpy()
             )
+            if "alpaca" in self.model_name:
+                probs = (
+                    torch.nn.functional.softmax(
+                        torch.tensor(
+                            [
+                                logit[self.tokenizer("A").input_ids[-1]],
+                                logit[self.tokenizer("B").input_ids[-1]],
+                                logit[self.tokenizer("C").input_ids[-1]],
+                                logit[self.tokenizer("D").input_ids[-1]],
+                            ]
+                        ),
+                        dim=0,
+                    )
+                    .detach()
+                    .cpu()
+                    .numpy()
+                )
             pred = {0: "A", 1: "B", 2: "C", 3: "D"}[np.argmax(probs)]
-            # print(probs, pred, label)
             self.correct += pred.strip() == label.strip()
 
     def compute(self):
@@ -105,9 +125,10 @@ class MMLUModel(LightningModule):
     def __init__(self, model, tokenizer, args):
         super().__init__()
         self.model = model
+        self.model_name = args.model
         self.tokenizer = tokenizer
         self.args = args
-        self.metric = LogitAccuracy(tokenizer)
+        self.metric = LogitAccuracy(tokenizer, self.model_name)
 
     def on_test_start(self):
         self.model.eval()
@@ -115,9 +136,14 @@ class MMLUModel(LightningModule):
         return super().on_test_start()
     
     def test_step(self, batch, batch_idx):
+        
+        if "alpaca" in self.model_name:
+            labels = batch.pop("labels")
+        else:
+            labels = batch["labels"]
         outputs = self.model(**batch)
         logits = outputs.logits
-        labels = batch["labels"]
+
         self.metric.update(logits, labels)
         self.log("test_acc", self.metric.compute())
     
