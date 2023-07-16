@@ -1,5 +1,7 @@
+from typing import Any, Optional
 from pytorch_lightning import LightningModule, LightningDataModule
 import pandas as pd
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT
 from torchmetrics import Metric
 from datasets import Dataset
 from pytorch_lightning.utilities.data import DataLoader
@@ -20,13 +22,15 @@ class LogitAccuracy(Metric):
     def update(self, logits, labels):
         self.total += logits.shape[0]
         labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+
         if "alpaca" in self.model_name:
             logits = logits[:, -1, :]
+        else: 
+            logits = logits[:, 0, :]
         
         for i in range(logits.shape[0]):
             label = labels[i]
             logit = logits[i].flatten()
-            
             probs = (
                 torch.nn.functional.softmax(
                     torch.tensor(
@@ -77,7 +81,7 @@ class MMLUDataModule(LightningDataModule):
 
         self.dev_df = pd.read_csv(
             os.path.join(data_dir, "dev", subj + "_dev.csv"), header=None
-        )[: ntrain]
+        )
 
         self.test_df = pd.read_csv(
             os.path.join(data_dir, "test", subj + "_test.csv"), header=None
@@ -86,6 +90,8 @@ class MMLUDataModule(LightningDataModule):
 
     def prepare_data(self):
         self.testset = []
+        self.valset = []
+
         if self.prompt_dir is None:
             for i in self.test_df.index:
 
@@ -105,9 +111,30 @@ class MMLUDataModule(LightningDataModule):
                     "input": prompt,
                     "output": label
                 })
+
+            for i in self.dev_df.index:
+
+                prompt_end = format_example(self.dev_df, i, include_answer=False)
+                train_prompt = gen_prompt(self.dev_df, self.subject, 0)
+                prompt = train_prompt + prompt_end
+
+                while self.tokenizer(prompt, return_tensors="pt").input_ids.shape[-1] > 2048:
+                    k -= 1
+                    train_prompt = gen_prompt(self.dev_df, self.subject, 0)
+                    prompt = train_prompt + prompt_end
+
+                label = self.dev_df.iloc[i, self.dev_df.shape[1] - 1]
+            
+                self.valset.append({
+                    "input": prompt,
+                    "output": label
+                })
         else:
             raise NotImplementedError
+        
+        self.valset = Dataset.from_list(self.valset)
         self.testset = Dataset.from_list(self.testset)
+
 
     def collate_fn(self, batch):
         batch = [b.values() for b in batch]
@@ -115,6 +142,9 @@ class MMLUDataModule(LightningDataModule):
         assert len(input_text) == len(output_text)
         batch = self.tokenizer(text=input_text, text_target=output_text, padding='longest', truncation=True, return_tensors="pt", max_length=512)
         return batch
+    
+    def val_dataloader(self):
+        return DataLoader(self.valset, batch_size=self.batch_size, collate_fn=self.collate_fn)
 
     def test_dataloader(self):
         return DataLoader(self.testset, batch_size=self.batch_size, collate_fn=self.collate_fn)
@@ -127,6 +157,7 @@ class MMLUModel(LightningModule):
         self.model = model
         self.model_name = args.model
         self.tokenizer = tokenizer
+        self.val_loss = []
         self.args = args
         self.metric = LogitAccuracy(tokenizer, self.model_name)
 
@@ -145,7 +176,21 @@ class MMLUModel(LightningModule):
         logits = outputs.logits
 
         self.metric.update(logits, labels)
-        self.log("test_acc", self.metric.compute())
+
+    def on_validation_start(self) -> None:
+        self.model.eval()
+        self.val_loss = []
+        return super().on_validation_start()
+    
+    def validation_step(self, batch, batch_idx):
+        if "alpaca" in self.model_name:
+            raise NotImplementedError
+        outputs = self.model(**batch)
+        loss = outputs.loss
+        self.val_loss.append(loss.item())
+
+    def get_val_loss(self):
+        return np.mean(self.val_loss)
     
     def on_test_end(self) -> None:
         return super().on_test_end()
