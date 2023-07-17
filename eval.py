@@ -112,13 +112,13 @@ if __name__ == "__main__":
 
     parser.add_argument('--prompt_dir', "-p", type=str, default=None)
     parser.add_argument("--data_dir", "-d", type=str, default="data")
-    parser.add_argument("--save_dir", "-s", type=str, default="results/flan-t5-base")
+    parser.add_argument("--save_dir", "-s", type=str, default="results/run_best")
 
     parser.add_argument(
         "--model",
         "-m",
         type=str,
-        default="google/flan-t5-base",
+        default="../results/run_best/t5-base",
     )
     parser.add_argument('--batch_size', default=32, type=int)
 
