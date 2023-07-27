@@ -53,7 +53,7 @@ def main(args):
     }
     cat_cors = {cat: [] for cat in categories}
 
-    results_df = pd.DataFrame(columns=["subject", "accuracy", "granularity"])
+    results_df = pd.DataFrame(columns=["subject", "accuracy", "loss", "granularity"])
     if not os.path.exists(os.path.join(args.save_dir, "preds")):
         os.makedirs(os.path.join(args.save_dir, "preds"))
         
@@ -64,13 +64,21 @@ def main(args):
 
         data_module = MMLUDataModule(args.data_dir, args.prompt_dir, tokenizer, args.batch_size, subject, args.ntrain)
         data_module.prepare_data()
+
+        val_dataloader = data_module.val_dataloader()
         test_dataloader = data_module.test_dataloader()
+
+        if "alpaca" not in args.model:
+            trainer.validate(model, dataloaders=val_dataloader, verbose=False)
+            val_loss = model.get_val_loss()
+        else:
+            val_loss = 0
+
         trainer.test(model, dataloaders=test_dataloader, verbose=False)
         acc = model.metric.compute().item()
         model.save_preds(os.path.join(args.save_dir, "preds", subject + "_preds.txt"))
-
-        print("Average accuracy {:.3f} - {}".format(acc, subject))
-        results_df.loc[len(results_df)] = [subject, acc, "subject"]
+        print("Average accuracy {:.3f}; Average val_loss {:.4f} - {}".format(acc, val_loss, subject))
+        results_df.loc[len(results_df)] = [subject, acc, val_loss, "subject"]
         
         cor = model.metric.correct.item()
         total = model.metric.total.item()
@@ -91,8 +99,9 @@ def main(args):
             continue
 
         subcat_acc = sum(cors) / sum(totals)
+
         print("Average accuracy {:.3f} - {}".format(subcat_acc, subcat))
-        results_df.loc[len(results_df)] = [subcat, subcat_acc, "subcategory"]
+        results_df.loc[len(results_df)] = [subcat, subcat_acc, None, "subcategory"]
 
     for cat in cat_cors:
         try:
@@ -102,13 +111,13 @@ def main(args):
 
         cat_acc = sum(cors) / sum(totals)
         print("Average accuracy {:.3f} - {}".format(cat_acc, cat))
-        results_df.loc[len(results_df)] = [cat, cat_acc, "category"]
+        results_df.loc[len(results_df)] = [cat, cat_acc, None, "category"]
 
     cors, totals = zip(*all_cors)
     weighted_acc = sum(cors) / sum(totals)
 
     print("Average accuracy: {:.3f}".format(weighted_acc))
-    results_df.loc[len(results_df)] = ["all", weighted_acc, "overall"]
+    results_df.loc[len(results_df)] = ["all", weighted_acc, None, "overall"]
     results_df.to_csv(os.path.join(args.save_dir, "results.csv"), index=False)
 
 if __name__ == "__main__":
@@ -130,7 +139,7 @@ if __name__ == "__main__":
         type=str,
         default="google/flan-t5-base",
     )
-    parser.add_argument('--batch_size', default=1, type=int)
+    parser.add_argument('--batch_size', default=16, type=int)
 
     args = parser.parse_args()
     seed_everything(args.seed)
