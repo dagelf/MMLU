@@ -14,6 +14,10 @@ class LogitAccuracy(Metric):
         super().__init__()
         self.tokenizer = tokenizer
         self.model_name = model_name
+
+        self.all_preds = []
+        self.all_golds = []
+
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
     
@@ -22,6 +26,8 @@ class LogitAccuracy(Metric):
         labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
         if "alpaca" in self.model_name:
             logits = logits[:, -1, :]
+
+        preds = []
         
         for i in range(logits.shape[0]):
             label = labels[i]
@@ -61,7 +67,11 @@ class LogitAccuracy(Metric):
                     .numpy()
                 )
             pred = {0: "A", 1: "B", 2: "C", 3: "D"}[np.argmax(probs)]
+            preds.append(pred)
             self.correct += pred.strip() == label.strip()
+
+        self.all_preds.extend(preds)
+        self.all_golds.extend(labels)
 
     def compute(self):
         return self.correct.float() / self.total.float()
@@ -129,10 +139,12 @@ class MMLUModel(LightningModule):
         self.tokenizer = tokenizer
         self.args = args
         self.metric = LogitAccuracy(tokenizer, self.model_name)
-
+    
     def on_test_start(self):
         self.model.eval()
         self.metric.reset()
+        self.metric.all_golds = []
+        self.metric.all_preds = []
         return super().on_test_start()
     
     def test_step(self, batch, batch_idx):
@@ -149,3 +161,8 @@ class MMLUModel(LightningModule):
     
     def on_test_end(self) -> None:
         return super().on_test_end()
+    
+    def save_preds(self, path):
+        with open(path, "w") as f:
+            for pred, gold in zip(self.metric.all_preds, self.metric.all_golds):
+                f.write(f"{pred}\t{gold}\n")

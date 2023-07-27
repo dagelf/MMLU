@@ -54,12 +54,20 @@ def main(args):
     cat_cors = {cat: [] for cat in categories}
 
     results_df = pd.DataFrame(columns=["subject", "accuracy", "granularity"])
+    if not os.path.exists(os.path.join(args.save_dir, "preds")):
+        os.makedirs(os.path.join(args.save_dir, "preds"))
+        
     for subject in subjects:
+
+        if len(args.subset) > 0 and subject not in args.subset:
+            continue
+
         data_module = MMLUDataModule(args.data_dir, args.prompt_dir, tokenizer, args.batch_size, subject, args.ntrain)
         data_module.prepare_data()
         test_dataloader = data_module.test_dataloader()
         trainer.test(model, dataloaders=test_dataloader, verbose=False)
         acc = model.metric.compute().item()
+        model.save_preds(os.path.join(args.save_dir, "preds", subject + "_preds.txt"))
 
         print("Average accuracy {:.3f} - {}".format(acc, subject))
         results_df.loc[len(results_df)] = [subject, acc, "subject"]
@@ -75,14 +83,23 @@ def main(args):
                     cat_cors[key].append((cor, total))
         all_cors.append((cor, total))
 
+
     for subcat in subcat_cors:
-        cors, totals = zip(*subcat_cors[subcat])
+        try:
+            cors, totals = zip(*subcat_cors[subcat])
+        except ValueError:
+            continue
+
         subcat_acc = sum(cors) / sum(totals)
         print("Average accuracy {:.3f} - {}".format(subcat_acc, subcat))
         results_df.loc[len(results_df)] = [subcat, subcat_acc, "subcategory"]
 
     for cat in cat_cors:
-        cors, totals = zip(*cat_cors[cat])
+        try:
+            cors, totals = zip(*cat_cors[cat])
+        except ValueError:
+            continue
+
         cat_acc = sum(cors) / sum(totals)
         print("Average accuracy {:.3f} - {}".format(cat_acc, cat))
         results_df.loc[len(results_df)] = [cat, cat_acc, "category"]
@@ -102,16 +119,18 @@ if __name__ == "__main__":
     parser.add_argument('--seed', default=42, type=int)
 
     parser.add_argument('--prompt_dir', "-p", type=str, default=None)
-    parser.add_argument("--data_dir", "-d", type=str, default="data")
-    parser.add_argument("--save_dir", "-s", type=str, default="results/alpaca-7b")
+    parser.add_argument("--data_dir", "-d", type=str, default="flan-t5-base-correct")
+    parser.add_argument("--save_dir", "-s", type=str, default="results/flan-t5-base-correct")
+
+    parser.add_argument("--subset", type=list, default=[])
 
     parser.add_argument(
         "--model",
         "-m",
         type=str,
-        default="../alpaca-7b",
+        default="google/flan-t5-base",
     )
-    parser.add_argument('--batch_size', default=16, type=int)
+    parser.add_argument('--batch_size', default=1, type=int)
 
     args = parser.parse_args()
     seed_everything(args.seed)
