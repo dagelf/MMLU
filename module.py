@@ -204,8 +204,6 @@ class MMLUModel(LightningModule):
     def get_val_loss(self):
         return np.mean(self.val_loss)
     
-    def on_test_end(self) -> None:
-    
     def save_preds(self, path):
         with open(path, "w") as f:
             for pred, gold in zip(self.metric.all_preds, self.metric.all_golds):
