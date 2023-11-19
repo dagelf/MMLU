@@ -1,8 +1,10 @@
 import argparse
 import os
-import torch
+
 import numpy as np
 import pandas as pd
+import torch.cuda
+
 from categories import subcategories, categories
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -96,13 +98,15 @@ def eval(args, subject, model, tokenizer, dev_df, test_df):
 
 
 def main(args):
+    hf_kwargs = dict(revision=args.model_revision)
+
     model = AutoModelForCausalLM.from_pretrained(
-        args.target_model,
-        cache_dir=args.cache_dir,
+        args.model,
         device_map="auto",
-        torch_dtype=torch.float16
+        torch_dtype=torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16,
+        **hf_kwargs
     )
-    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    tokenizer = AutoTokenizer.from_pretrained(args.model, **hf_kwargs)
     model.eval()
     subjects = sorted(
         [
@@ -168,10 +172,21 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", "-d", type=str, default="data")
     parser.add_argument("--save_dir", "-s", type=str, default="results")
     parser.add_argument(
-        "--model",
         "-m",
+        "--model",
         type=str,
         default="meta-llama/Llama-2-7b-hf",
     )
+    parser.add_argument(
+        "-b",
+        "-r",
+        "--revision",
+        "--model_revision",
+        dest="model_revision",
+        type=str,
+        default=None
+    )
     args = parser.parse_args()
+    if not bool(args.model_revision):
+        args.model_revision = None
     main(args)
