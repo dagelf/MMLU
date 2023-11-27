@@ -27,6 +27,7 @@ def main(args: Namespace) -> None:
 
     subcat_to_cat = {subcat: cat for cat, subcats in categories.items() for subcat in subcats}
 
+    subject_cors: Dict[str, list] = dict()
     subcat_cors: Dict[str, list] = dict()
     cat_cors: Dict[str, list] = dict()
     all_cors = list()
@@ -35,6 +36,7 @@ def main(args: Namespace) -> None:
         df = pd.read_csv(str(input_file))
 
         cors = df[cor_key].to_list()
+        subject_cors[subject] = cors
 
         for subcat in subcategories[subject]:
             subcat_cors.setdefault(subcat, [])
@@ -46,6 +48,10 @@ def main(args: Namespace) -> None:
 
         all_cors.extend(cors)
 
+    for k, v in subject_cors.items():
+        print(f"Average accuracy {np.mean(v):.3f} - {k}")
+
+    print("--" * 10)
     for k, v in subcat_cors.items():
         print(f"Average accuracy {np.mean(v):.3f} - {k}")
 
