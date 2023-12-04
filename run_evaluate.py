@@ -26,6 +26,30 @@ def _get_parser() -> ArgumentParser:
     return parser
 
 
+def _get_subprocess_args(args: Optional[Sequence[str]] = None) -> Namespace:
+    parser = ArgumentParser()
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        required=True
+    )
+    parser.add_argument(
+        "-b",
+        "-r",
+        "--revision",
+        "--model_revision",
+        dest="model_revision",
+        type=str,
+        default=None
+    )
+    parsed_args, *_ = parser.parse_known_args(args)
+    if not bool(parsed_args.model_revision):
+        parsed_args.model_revision = None
+
+    return parsed_args
+
+
 async def run_task(
         program: str,
         *args: str,
@@ -51,7 +75,12 @@ async def run_task(
         stderr=sys.stderr,
         env=os_environ
     )
-    print(f"[{proc.pid}] Started")
+
+    subprocess_args = _get_subprocess_args(args)
+    desc = f"\"{subprocess_args.model}\""
+    if subprocess_args.model_revision is not None:
+        desc += f" @ {subprocess_args.model_revision}"
+    print(f"[{proc.pid}] Started for {desc}", flush=True)
 
     await proc.wait()
     await queue.put((device_id, proc))
