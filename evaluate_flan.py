@@ -52,7 +52,6 @@ def eval(args, subject, model, tokenizer, dev_df, test_df):
         prompt_end = format_example(test_df, i, include_answer=False)
         train_prompt = gen_prompt(dev_df, subject, k)
         prompt = train_prompt + prompt_end
-
         input_ids = tokenizer(prompt, return_tensors="pt").input_ids.cuda()
 
         while input_ids.shape[-1] > 2048:
@@ -176,8 +175,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ntrain", "-k", type=int, default=5)
-    parser.add_argument("--ngpu", "-g", type=int, default=2)
+    parser.add_argument("--ntrain", "-k", type=int, default=0)
+    parser.add_argument("--ngpu", "-g", type=int, default=1)
     parser.add_argument("--data_dir", "-d", type=str, default="data")
     parser.add_argument("--save_dir", "-s", type=str, default="results")
     parser.add_argument(

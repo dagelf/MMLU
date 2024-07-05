@@ -1,0 +1,44 @@
+0,1,2,3,4,5
+The following are the necessary requirements of an oscillator,Amplitude stability,Frequency stability,Power stability,Both A and B,D
+LC oscillators are used for produce a waveform with frequency ranging from,1MHz to 500 MHz,100 KHz to 500 MHz,1 KHz to 1 MHz,1MHz to 100 GHz,A
+What is the name of the fluorescent material that gives red colour fluorescence?,Zinc silicate.,Calcium silicate.,Zinc sulphide.,Magnesium silicate.,D
+How many bits are required to store one BCD digit ?,1,2,3,4,D
+Commutator in DC generator is used for,collecting of current,reduce losses,increase efficiency,convert AC armature current in to DC,D
+Relaxation Voltage controlled oscillators are used to generate,Sinusoidal wave,Triangular wave,Sawtooth wave,Both B and C,D
+The supply frequency usually employed for high frequency eddy current heating is,1 KHz.,5 KHz.,10 MHz.,10 KHz to 400 KHz.,D
+In the toggle mode a JK flip-flop has,"J = 0, K = 0.","J = 1, K = 1.","J = 0, K = 1.","J = 1, K = 0.",B
+A step up chopper has input voltage 110 V and output voltage 150 V. The value of duty cycle is,0.32.,0.67.,0.45.,0.27.,B
+"The voltage induced in an inductor is represented as,",product of its inductance and current through it.,ratio of its inductance to current through it.,ratio of current through it to its inductance.,product of its inductance and rate of change of current through it.,D
+Induction heating takes place in,conducting but non-magnetic materials.,conducting materials which may be either magnetic or non-magentic materials.,insulating materials.,conducting and magnetic materials.,B
+"In balanced bridge, if the positions of detector and source are interchanged, the bridge will still remain balanced. This can be explained from which theorem",Reciprocity theorem,Thevinin's theorem,Norton's theorem,Compensation theorem,A
+FM stands for,frequent modulation.,frequency modulation.,frequency moderator.,frequent moderator.,B
+Systematic errors are,environmental errors.,observational errors.,instrument errors.,all of the above.,D
+Which of the following is/are the disadvantages of an open loop control system?,Inaccurate.,Unreliable.,both A and B.,none of the above.,C
+Piezoelectric effect is carried out in,composite filter.,crystal filter.,m derived.,constant k prototype.,B
+"Length of the cable is doubled, its capacitance C will be",one-fourth.,one-half.,doubled.,unchanged.,C
+Low frequency supply is necessary for direct core type induction furnaces because,With normal frequeny supply the electromagnetic forces causes severe stirring action in the molten metal.,Magnetic coupling between the primary and secondary circuit is poor.,Both A and B.,None of the above.,C
+For intermittent work which of the following furnace is suitable?,Core less furnace.,Indirect arc furnace.,Either of above.,Nither of above.,B
+In electrical resistance welding material of electrode should have,higher electrical conductivities.,higher thermal conductivities.,sufficient strength to sustain high pressure at elevated temperatures.,all of above.,D
+Which of the following are the passive elements?,Resistor,Bulb,Both,None of these.,C
+Materials used in heat sink should have,high thermal conductivity.,large surface area.,high melting point.,All of these.,D
+Conductor is static and the field is varying then emf will be induced. This principle is called,virtually induced emf.,dynamically induced emf.,static induced emf.,none of these,C
+A three-state buffer has the following output states,"1, 0, float","High, Low, Float",Both A and B,"Set, Reset, Halt",C
+"By using which of the following elements, mechanical translational systems are obtained?",mass element,spring element,dash-pot,all of the above,D
+"Four capacitors each of 40 µF are connected in parallel, the equivalent capacitance of the system will be",160 µF,10 µF,40 µF,5 µF,A
+"To obtain a high value of capacitance, the permittivity of dielectric medium should be",low,zero,high,unity,C
+Purely mechanical instrument cannot be used for dynamic measurements because they have,high inertia.,higher response time.,large time constant.,all of the above.,D
+Under over voltage condition impedance offered by the voltage clamping device is,high.,low.,moderate.,infinity.,B
+"In force-current analogy, electrical analogous quantity for displacement (x) is",voltage.,inductance.,capacitance.,flux.,D
+Temperature variation is a/an,Digital quantity,Analog quantity,Either Digital or Analog quantity,,B
+Which of the following is used in SCR to protect from high dV / dt?,Snubber circuit.,Fuse.,Equalizing circuit.,Circuit breaker.,A
+Electrical analogous quantity for spring element (K) in force-voltage analogy is,L,R,1/C,C,C
+A quartz crystal oscillator consists of,only series resonant frequency.,only parallel resonant frequency.,both series and parallel frequencies.,neither series nor parallel frequency.,C
+A metal surface with 1 meter radius and surface charge density of 20 coulombs / m2 is enclosed in a 10 m side cube. The total outward electric displacement normal to the surface of the cube is,40π coulombs.,80π coulombs.,10π coulombs.,none of these.,B
+In two wattmeter method of power measurement if the total power is measured by one wattmeter only then power factor of the system is,0.,0.5.,1.,none of above.,B
+A 0 - 100 V voltmeter has a guaranteed accuracy of 2 % of full scale reading. The voltage measured by the voltmeter is 75 V. The limiting error is in percentage,3.33 %.,2.66 %.,2 %.,1 %.,B
+Which of the following methods is/are used for reactive or voltage compensation,shunt capacitor,series capacitor,generation excitation control,all of the above,D
+In 8085 name/names of the 16 bit registers is/are,stack pointer.,program counter.,both A and B.,none of these.,C
+Stability of a transmission line can be increased by,shunt capacitor,series capacitor,shunt reactor,both A and B,D
+The number of rings in the Bohr model of any element is determined by what?,Column number on periodic table.,Atomic mass.,Row number on periodic table.,Atomic number.,C
+Silicon and Germanium are ________ elements.,trivalant,pentavalant,hexavalant,tetravalant,D
+If P is the power of a star connected system then what will be power of an equivalent delta connected system?,P,3P,P/3,None of the above,A
